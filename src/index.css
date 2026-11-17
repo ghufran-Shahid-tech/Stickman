@@ -14,8 +14,8 @@
     min-width: 320px;
     margin: 0;
     overflow: hidden;
-    background-color: #ffffff;
-    color: #111111;
+    background-color: #060a14;
+    color: #f8fafc;
     overscroll-behavior: none;
     font-family: var(--font-sans);
   }

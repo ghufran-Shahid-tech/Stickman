@@ -12,6 +12,7 @@ import {
   drawMuzzleFlashes,
   drawParticles,
   drawProjectiles,
+  drawSkyAndCelestial,
   getEnemyWorldHitbox,
   type EnemyWorldHitbox,
 } from './renderer';
@@ -327,6 +328,7 @@ export function useStickmanGame() {
     playerExpressionTimer: 0,
     nextEnemyTime: 0,
     enemySequence: 0,
+    lastDefeatedEnemySpawnId: -1,
     enemy: null as Enemy | null,
     brokenParts: [] as BrokenPart[],
     projectiles: [] as Projectile[],
@@ -376,6 +378,7 @@ export function useStickmanGame() {
     s.floatingScores.length = 0;
     s.muzzleFlashes.length = 0;
     s.enemySequence = 0;
+    s.lastDefeatedEnemySpawnId = -1;
     s.elapsed = 0;
     s.nextEnemyTime = 0;
     s.shotCooldown = 0;
@@ -502,6 +505,7 @@ export function useStickmanGame() {
         layout.enemyMinY + Math.random() * (layout.enemyMaxY - layout.enemyMinY);
 
       s.enemy = {
+        spawnId: s.enemySequence,
         index: idx,
         direction,
         x: direction > 0 ? -layout.headSize * 1.5 : s.width + layout.headSize * 1.5,
@@ -529,7 +533,7 @@ export function useStickmanGame() {
         const angle = Math.random() * Math.PI * 2;
         const speed = s.reducedMotion ? 40 + Math.random() * 70 : 95 + Math.random() * 230;
         const color =
-          i % 3 === 0 ? '#ff1e3c' : i % 3 === 1 ? '#ff6b81' : '#111111';
+          i % 3 === 0 ? '#ff1e3c' : i % 3 === 1 ? '#ff6b81' : '#e2e8f0';
         s.particles.push({
           x,
           y,
@@ -576,9 +580,11 @@ export function useStickmanGame() {
       );
       s.brokenParts.push(...parts);
 
+      s.lastDefeatedEnemySpawnId = hitEnemy.spawnId;
       s.enemy = null;
 
       audioRef.current?.stopAllEnemies(true);
+      audioRef.current?.stopMiss(true);
       audioRef.current?.playHit();
 
       s.score += 1;
@@ -612,6 +618,7 @@ export function useStickmanGame() {
         vy: uy * speed,
         life: 2.0,
         radius: Math.max(4, Math.min(6.5, s.width * 0.011)),
+        targetEnemySpawnId: s.enemy && !s.enemy.hit ? s.enemy.spawnId : null,
       });
 
       if (!s.reducedMotion) {
@@ -866,6 +873,12 @@ export function useStickmanGame() {
           shot.y < -40 ||
           shot.y > s.height + 40
         ) {
+          if (
+            shot.targetEnemySpawnId !== null &&
+            shot.targetEnemySpawnId !== s.lastDefeatedEnemySpawnId
+          ) {
+            audioRef.current?.playMiss();
+          }
           s.projectiles.splice(i, 1);
         }
       }
@@ -947,11 +960,24 @@ export function useStickmanGame() {
 
       ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
       ctx.clearRect(0, 0, s.width, s.height);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, s.width, s.height);
 
       const layout = computeArenaLayout(s.width, s.height);
-      drawEnemy(ctx, s.enemy, images, layout, s.elapsed, s.reducedMotion);
+      drawSkyAndCelestial(
+        ctx,
+        s.width,
+        s.height,
+        layout,
+        s.elapsed,
+        s.reducedMotion,
+      );
+      drawEnemy(
+        ctx,
+        s.enemy,
+        images,
+        layout,
+        s.elapsed,
+        s.reducedMotion,
+      );
       drawBedAndPlayer(
         ctx,
         images,

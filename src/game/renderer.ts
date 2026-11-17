@@ -59,11 +59,322 @@ function drawDot(
   x: number,
   y: number,
   radius = 4,
+  color = '#111111',
 ): void {
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = '#111111';
+  ctx.fillStyle = color;
   ctx.fill();
+}
+
+function drawCloudShape(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  scale: number,
+  fill: string,
+): void {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.arc(-26, 4, 16, 0, Math.PI * 2);
+  ctx.arc(-6, -6, 22, 0, Math.PI * 2);
+  ctx.arc(18, -2, 18, 0, Math.PI * 2);
+  ctx.arc(34, 6, 13, 0, Math.PI * 2);
+  ctx.roundRect(-36, 4, 78, 16, 8);
+  ctx.fill();
+  ctx.restore();
+}
+
+export function drawSkyAndCelestial(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  layout: ArenaLayout,
+  elapsed: number,
+  reducedMotion: boolean,
+): void {
+  const animTime = reducedMotion ? 0 : elapsed;
+  const shortSide = Math.min(width, height);
+  const celestialX = width * 0.78;
+  const celestialY = Math.max(78, Math.min(height * 0.22, layout.enemyMinY + 8));
+
+  // Deep night sky gradient
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+  skyGrad.addColorStop(0, '#060a14');
+  skyGrad.addColorStop(0.55, '#0d172c');
+  skyGrad.addColorStop(1, '#16233f');
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // Subtle twinkling stars in upper sky
+  ctx.save();
+  for (let i = 0; i < 30; i += 1) {
+    const seedX = Math.sin(i * 127.1 + 31.7) * 43758.5453;
+    const seedY = Math.sin(i * 269.5 + 183.3) * 43758.5453;
+    const fracX = seedX - Math.floor(seedX);
+    const fracY = seedY - Math.floor(seedY);
+    const sx = fracX * width;
+    const sy = 18 + fracY * (height * 0.52);
+    const twinkle = reducedMotion
+      ? 0.65
+      : 0.3 + 0.7 * (0.5 + 0.5 * Math.sin(animTime * (1.8 + (i % 5) * 0.45) + i * 2.1));
+    const r = i % 6 === 0 ? 2.1 : 1.3;
+
+    ctx.globalAlpha = twinkle * 0.85;
+    ctx.fillStyle = i % 4 === 0 ? '#bae6fd' : '#f8fafc';
+    ctx.beginPath();
+    ctx.arc(sx, sy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (i % 9 === 0) {
+      ctx.globalAlpha = twinkle * 0.55;
+      ctx.strokeStyle = '#e0f2fe';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(sx - 5, sy);
+      ctx.lineTo(sx + 5, sy);
+      ctx.moveTo(sx, sy - 5);
+      ctx.lineTo(sx, sy + 5);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+
+  // Animated professional Moon behind enemies
+  const moonR = Math.max(25, Math.min(shortSide * 0.082, 46));
+  const moonPulse = 1 + Math.sin(animTime * 1.15) * 0.055;
+
+  ctx.save();
+  ctx.translate(celestialX, celestialY);
+
+  // Outer lunar aura
+  const haloGrad = ctx.createRadialGradient(0, 0, moonR * 0.5, 0, 0, moonR * 3.1 * moonPulse);
+  haloGrad.addColorStop(0, 'rgba(186, 230, 253, 0.34)');
+  haloGrad.addColorStop(0.42, 'rgba(96, 165, 250, 0.14)');
+  haloGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+  ctx.fillStyle = haloGrad;
+  ctx.beginPath();
+  ctx.arc(0, 0, moonR * 3.1 * moonPulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Slowly rotating orbital shimmer arcs around the moon
+  ctx.save();
+  ctx.rotate(animTime * 0.14);
+  ctx.strokeStyle = 'rgba(186, 230, 253, 0.22)';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(0, 0, moonR * 1.38, -0.4, 1.35);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, moonR * 1.38, Math.PI - 0.3, Math.PI + 1.25);
+  ctx.stroke();
+  ctx.restore();
+
+  // Luminous moon disc
+  const moonGrad = ctx.createRadialGradient(-moonR * 0.28, -moonR * 0.28, moonR * 0.12, 0, 0, moonR);
+  moonGrad.addColorStop(0, '#ffffff');
+  moonGrad.addColorStop(0.6, '#e2e8f0');
+  moonGrad.addColorStop(1, '#94a3b8');
+  ctx.fillStyle = moonGrad;
+  ctx.beginPath();
+  ctx.arc(0, 0, moonR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Subtle moon craters
+  ctx.fillStyle = 'rgba(100, 116, 139, 0.24)';
+  ctx.beginPath();
+  ctx.arc(-moonR * 0.28, -moonR * 0.12, moonR * 0.16, 0, Math.PI * 2);
+  ctx.arc(moonR * 0.24, moonR * 0.22, moonR * 0.2, 0, Math.PI * 2);
+  ctx.arc(moonR * 0.15, -moonR * 0.32, moonR * 0.1, 0, Math.PI * 2);
+  ctx.arc(-moonR * 0.1, moonR * 0.34, moonR * 0.11, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Soft silver rim highlight
+  ctx.strokeStyle = 'rgba(248, 250, 252, 0.55)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(0, 0, moonR - 0.5, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Drifting translucent night clouds
+  const cloudConfigs = [
+    { speed: 12, offset: 0.18, y: celestialY + 34, scale: 0.92 },
+    { speed: 8, offset: 0.62, y: Math.max(58, celestialY - 22), scale: 0.72 },
+    { speed: 15, offset: 0.88, y: celestialY + 58, scale: 0.78 },
+  ];
+  for (const c of cloudConfigs) {
+    const span = width + 220;
+    const cx = ((c.offset * span + animTime * c.speed) % span) - 110;
+    drawCloudShape(ctx, cx, c.y, c.scale * Math.max(0.75, layout.bodyScale), 'rgba(148, 163, 184, 0.10)');
+  }
+
+  // Stadium grass surface land beneath the bed (floodlit night pitch)
+  drawStadiumGrassLand(ctx, width, height, layout, animTime, reducedMotion);
+
+  // Subtle moonlight sheen behind bed silhouette for crisp contrast
+  const bedGlow = ctx.createRadialGradient(
+    layout.bedX + layout.bedWidth * 0.5,
+    layout.bedY + layout.bedHeight * 0.12,
+    layout.bedWidth * 0.1,
+    layout.bedX + layout.bedWidth * 0.5,
+    layout.bedY + layout.bedHeight * 0.12,
+    layout.bedWidth * 0.65,
+  );
+  bedGlow.addColorStop(0, 'rgba(148, 163, 184, 0.22)');
+  bedGlow.addColorStop(1, 'rgba(15, 23, 42, 0)');
+  ctx.fillStyle = bedGlow;
+  ctx.fillRect(0, layout.bedTop - 30, width, height - layout.bedTop + 30);
+}
+
+function drawStadiumGrassLand(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  layout: ArenaLayout,
+  animTime: number,
+  reducedMotion: boolean,
+): void {
+  const horizonY = Math.min(height - 36, layout.bedTop + layout.bedHeight * 0.68);
+  const turfH = Math.max(1, height - horizonY);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, horizonY, width, turfH);
+  ctx.clip();
+
+  // Base floodlit stadium turf gradient
+  const turfGrad = ctx.createLinearGradient(0, horizonY, 0, height);
+  turfGrad.addColorStop(0, '#14532d');
+  turfGrad.addColorStop(0.45, '#0f4424');
+  turfGrad.addColorStop(1, '#082c17');
+  ctx.fillStyle = turfGrad;
+  ctx.fillRect(0, horizonY, width, turfH);
+
+  // Perspective mowed stadium grass stripes
+  const stripeCount = 14;
+  const topWidth = width * 1.1;
+  const bottomWidth = width * 1.95;
+  const topStartX = (width - topWidth) / 2;
+  const bottomStartX = (width - bottomWidth) / 2;
+  const topStep = topWidth / stripeCount;
+  const bottomStep = bottomWidth / stripeCount;
+
+  for (let i = 0; i < stripeCount; i += 2) {
+    const tx0 = topStartX + i * topStep;
+    const tx1 = tx0 + topStep;
+    const bx0 = bottomStartX + i * bottomStep;
+    const bx1 = bx0 + bottomStep;
+
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.11)';
+    ctx.beginPath();
+    ctx.moveTo(tx0, horizonY);
+    ctx.lineTo(tx1, horizonY);
+    ctx.lineTo(bx1, height);
+    ctx.lineTo(bx0, height);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Stadium pitch white chalk touchlines in perspective
+  ctx.strokeStyle = 'rgba(226, 232, 240, 0.24)';
+  ctx.lineWidth = Math.max(1.8, layout.bedWidth * 0.004);
+
+  const backLineY = horizonY + turfH * 0.07;
+  ctx.beginPath();
+  ctx.moveTo(0, backLineY);
+  ctx.lineTo(width, backLineY);
+  ctx.stroke();
+
+  const centerTopX = width * 0.5;
+  const leftLaneTopX = width * 0.22;
+  const rightLaneTopX = width * 0.78;
+  ctx.lineWidth = Math.max(1.5, layout.bedWidth * 0.0032);
+  ctx.beginPath();
+  ctx.moveTo(centerTopX, backLineY);
+  ctx.lineTo(centerTopX, height);
+  ctx.moveTo(leftLaneTopX, backLineY);
+  ctx.lineTo(width * 0.06, height);
+  ctx.moveTo(rightLaneTopX, backLineY);
+  ctx.lineTo(width * 0.94, height);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.ellipse(
+    width * 0.5,
+    horizonY + turfH * 0.46,
+    Math.min(width * 0.28, 220),
+    Math.max(18, turfH * 0.26),
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.stroke();
+
+  // Horizon grass border rim
+  ctx.fillStyle = 'rgba(34, 197, 94, 0.28)';
+  ctx.fillRect(0, horizonY, width, 2.5);
+
+  // Swaying grass blade tufts across the stadium turf
+  const tuftCount = Math.max(28, Math.round(width / 26));
+  ctx.lineCap = 'round';
+  for (let i = 0; i < tuftCount; i += 1) {
+    const seedA = Math.sin(i * 91.7 + 14.3) * 43758.5453;
+    const seedB = Math.sin(i * 213.1 + 77.9) * 43758.5453;
+    const fracX = seedA - Math.floor(seedA);
+    const fracY = seedB - Math.floor(seedB);
+
+    const gx = fracX * width;
+    const depth = i % 3 === 0 ? 0.02 + fracY * 0.12 : 0.14 + fracY * 0.8;
+    const gy = horizonY + turfH * depth;
+    const bladeScale = 0.65 + depth * 0.65;
+    const bladeH = (5.5 + (i % 3) * 2.2) * bladeScale;
+    const sway = reducedMotion ? 0 : Math.sin(animTime * 2.4 + i * 0.85) * 2.2 * bladeScale;
+
+    ctx.strokeStyle =
+      i % 2 === 0 ? 'rgba(34, 197, 94, 0.38)' : 'rgba(21, 128, 61, 0.52)';
+    ctx.lineWidth = Math.max(1.2, 1.5 * bladeScale);
+
+    ctx.beginPath();
+    ctx.moveTo(gx, gy);
+    ctx.lineTo(gx - 2.5 * bladeScale + sway, gy - bladeH * 0.85);
+    ctx.moveTo(gx + 1.5, gy);
+    ctx.lineTo(gx + 0.8 + sway * 1.15, gy - bladeH);
+    ctx.moveTo(gx + 3, gy);
+    ctx.lineTo(gx + 4 * bladeScale + sway * 0.9, gy - bladeH * 0.78);
+    ctx.stroke();
+  }
+
+  // Ground contact shadow beneath the bed legs on the stadium turf
+  const shadowGrad = ctx.createRadialGradient(
+    layout.bedX + layout.bedWidth * 0.51,
+    layout.bedTop + layout.bedHeight * 0.86,
+    layout.bedWidth * 0.08,
+    layout.bedX + layout.bedWidth * 0.51,
+    layout.bedTop + layout.bedHeight * 0.86,
+    layout.bedWidth * 0.52,
+  );
+  shadowGrad.addColorStop(0, 'rgba(2, 6, 23, 0.62)');
+  shadowGrad.addColorStop(0.7, 'rgba(2, 6, 23, 0.25)');
+  shadowGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shadowGrad;
+  ctx.beginPath();
+  ctx.ellipse(
+    layout.bedX + layout.bedWidth * 0.51,
+    layout.bedTop + layout.bedHeight * 0.86,
+    layout.bedWidth * 0.52,
+    layout.bedHeight * 0.18,
+    0,
+    0,
+    Math.PI * 2,
+  );
+  ctx.fill();
+
+  ctx.restore();
 }
 
 function drawImageContain(
@@ -388,6 +699,9 @@ export function drawBrokenParts(
   parts: ReadonlyArray<BrokenPart>,
   images: LoadedImages,
 ): void {
+  const outlineColor = '#ffffff';
+  const bodyFillColor = '#737373';
+
   for (const part of parts) {
     const fade = Math.max(0, Math.min(1, part.life / 0.45));
     ctx.save();
@@ -398,8 +712,11 @@ export function drawBrokenParts(
       ctx.rotate(part.angle);
       const halfLen = (part.length ?? 20) * 0.5;
       const thick = part.thickness ?? 5;
-      ctx.strokeStyle = '#111111';
-      ctx.lineWidth = thick;
+      const dotR = Math.max(2.6, thick * 0.72);
+
+      // Outer white outline
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = thick + 3.4;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(-halfLen, 0);
@@ -407,7 +724,19 @@ export function drawBrokenParts(
       ctx.stroke();
 
       if (part.dotSide) {
-        drawDot(ctx, part.dotSide * halfLen, 0, Math.max(2.6, thick * 0.72));
+        drawDot(ctx, part.dotSide * halfLen, 0, dotR + 1.7, outlineColor);
+      }
+
+      // Inner grey body fill
+      ctx.strokeStyle = bodyFillColor;
+      ctx.lineWidth = thick;
+      ctx.beginPath();
+      ctx.moveTo(-halfLen, 0);
+      ctx.lineTo(halfLen, 0);
+      ctx.stroke();
+
+      if (part.dotSide) {
+        drawDot(ctx, part.dotSide * halfLen, 0, dotR, bodyFillColor);
       }
     } else if (part.kind === 'cape') {
       ctx.rotate(part.angle);
@@ -416,7 +745,7 @@ export function drawBrokenParts(
       }
       ctx.scale(part.scale, part.scale);
       ctx.fillStyle = '#dc2626';
-      ctx.strokeStyle = '#111111';
+      ctx.strokeStyle = outlineColor;
       ctx.lineWidth = 2.2;
       ctx.beginPath();
       ctx.moveTo(22, -4);
@@ -450,6 +779,9 @@ export function drawEnemy(
 ): void {
   if (!enemy) return;
   const pose = getEnemyLocalPose(enemy, layout, elapsed, reducedMotion);
+  const outlineColor = '#ffffff';
+  const bodyFillColor = '#737373';
+  const streakColor = 'rgba(226, 232, 240, 0.24)';
 
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
@@ -462,7 +794,7 @@ export function drawEnemy(
   // Subtle aerodynamic slipstream speed lines behind Superman
   if (!reducedMotion) {
     ctx.save();
-    ctx.strokeStyle = 'rgba(17, 24, 39, 0.14)';
+    ctx.strokeStyle = streakColor;
     ctx.lineWidth = 1.6;
     ctx.lineCap = 'round';
     const streakShift = ((elapsed * 90 + enemy.phase * 15) % 18) - 9;
@@ -475,10 +807,10 @@ export function drawEnemy(
     ctx.restore();
   }
 
-  // Flowing crimson Superman cape behind the body
+  // Flowing crimson Superman cape behind the body with crisp white outline
   ctx.save();
   ctx.fillStyle = '#dc2626';
-  ctx.strokeStyle = '#111111';
+  ctx.strokeStyle = outlineColor;
   ctx.lineWidth = 2.2;
   ctx.lineJoin = 'round';
   ctx.beginPath();
@@ -500,22 +832,27 @@ export function drawEnemy(
   ctx.stroke();
   ctx.restore();
 
-  // Trailing back arm
-  drawLine(ctx, pose.armTrail, '#111111', 4.8);
-
-  // Streamlined trailing legs
-  drawLine(ctx, pose.legTop, '#111111', 5);
-  drawLine(ctx, pose.legBottom, '#111111', 5);
-
-  // Torso & neck
-  drawLine(ctx, pose.torso, '#111111', 5.5);
-  drawLine(ctx, pose.neck, '#111111', 4.8);
-
-  // Straight Superman reaching arm behind the head + clenched fist
-  drawLine(ctx, pose.armLead, '#111111', 5);
-
+  // Pass 1: Continuous white outer outline for the entire enemy body & joints
+  const outlinePad = 3.6;
+  drawLine(ctx, pose.armTrail, outlineColor, 4.8 + outlinePad);
+  drawLine(ctx, pose.legTop, outlineColor, 5 + outlinePad);
+  drawLine(ctx, pose.legBottom, outlineColor, 5 + outlinePad);
+  drawLine(ctx, pose.torso, outlineColor, 5.5 + outlinePad);
+  drawLine(ctx, pose.neck, outlineColor, 4.8 + outlinePad);
+  drawLine(ctx, pose.armLead, outlineColor, 5 + outlinePad);
   for (const [jx, jy] of pose.jointEndpoints) {
-    drawDot(ctx, jx, jy, 3.6);
+    drawDot(ctx, jx, jy, 3.6 + outlinePad * 0.5, outlineColor);
+  }
+
+  // Pass 2: Seamless grey inner body color on top of white outline
+  drawLine(ctx, pose.armTrail, bodyFillColor, 4.8);
+  drawLine(ctx, pose.legTop, bodyFillColor, 5);
+  drawLine(ctx, pose.legBottom, bodyFillColor, 5);
+  drawLine(ctx, pose.torso, bodyFillColor, 5.5);
+  drawLine(ctx, pose.neck, bodyFillColor, 4.8);
+  drawLine(ctx, pose.armLead, bodyFillColor, 5);
+  for (const [jx, jy] of pose.jointEndpoints) {
+    drawDot(ctx, jx, jy, 3.6, bodyFillColor);
   }
 
   // Head drawn in front of the outstretched arm with secondary spring pitch/bob physics
@@ -615,17 +952,19 @@ export function drawAim(
   const stickLength = Math.max(rawDist + 100, minStickLength);
   const tipX = layout.muzzleX + ux * stickLength;
   const tipY = layout.muzzleY + uy * stickLength;
+  const aimColor = '#f8fafc';
+  const dragMarkerColor = 'rgba(248, 250, 252, 0.5)';
 
   ctx.save();
 
   // Origin dot at the aiming hand
   ctx.beginPath();
   ctx.arc(layout.muzzleX, layout.muzzleY, 4, 0, Math.PI * 2);
-  ctx.fillStyle = '#111111';
+  ctx.fillStyle = aimColor;
   ctx.fill();
 
   // Extended dashed aim stick
-  ctx.strokeStyle = '#111111';
+  ctx.strokeStyle = aimColor;
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.setLineDash([11, 9]);
@@ -639,7 +978,7 @@ export function drawAim(
     ctx.setLineDash([]);
     ctx.beginPath();
     ctx.arc(pointer.x, pointer.y, 3.2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(17, 17, 17, 0.45)';
+    ctx.fillStyle = dragMarkerColor;
     ctx.fill();
   }
 
@@ -648,11 +987,12 @@ export function drawAim(
   ctx.beginPath();
   ctx.arc(tipX, tipY, 9, 0, Math.PI * 2);
   ctx.lineWidth = 2.25;
+  ctx.strokeStyle = aimColor;
   ctx.stroke();
 
   ctx.beginPath();
   ctx.arc(tipX, tipY, 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = '#111111';
+  ctx.fillStyle = aimColor;
   ctx.fill();
 
   ctx.restore();
@@ -819,7 +1159,7 @@ export function drawFloatingScores(
     ctx.font = '800 22px "Outfit", system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#111111';
+    ctx.fillStyle = '#f8fafc';
     ctx.fillText('+1', pop.x, pop.y);
     ctx.restore();
   }

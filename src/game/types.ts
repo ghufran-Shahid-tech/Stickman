@@ -6,6 +6,7 @@ export interface Point {
 }
 
 export interface Enemy {
+  spawnId: number;
   index: number;
   direction: 1 | -1;
   x: number;
@@ -53,6 +54,7 @@ export interface Projectile {
   vy: number;
   life: number;
   radius: number;
+  targetEnemySpawnId: number | null;
 }
 
 export interface Particle {

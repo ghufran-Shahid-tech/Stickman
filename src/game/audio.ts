@@ -15,6 +15,7 @@ export class GameAudioController {
   private readonly enemies: HTMLAudioElement[];
   private readonly firePool: HTMLAudioElement[];
   private readonly hitPool: HTMLAudioElement[];
+  private readonly missAudio: HTMLAudioElement;
   private fireCursor = 0;
   private hitCursor = 0;
   private muted: boolean;
@@ -24,11 +25,12 @@ export class GameAudioController {
     this.enemies = GAME_ASSETS.enemyAudio.map(createAudio);
     this.firePool = createAudioPool(GAME_ASSETS.fireAudio, 4);
     this.hitPool = createAudioPool(GAME_ASSETS.hitAudio, 2);
+    this.missAudio = createAudio(GAME_ASSETS.missAudio);
     this.applyMutedState();
   }
 
   private get allElements(): HTMLAudioElement[] {
-    return [...this.enemies, ...this.firePool, ...this.hitPool];
+    return [...this.enemies, ...this.firePool, ...this.hitPool, this.missAudio];
   }
 
   private applyMutedState(): void {
@@ -88,6 +90,22 @@ export class GameAudioController {
     this.playElement(audio, true);
   }
 
+  playMiss(): void {
+    if (this.muted) return;
+    if (
+      !this.missAudio.paused &&
+      !this.missAudio.ended &&
+      this.missAudio.currentTime < 0.65
+    ) {
+      return;
+    }
+    this.playElement(this.missAudio, true);
+  }
+
+  stopMiss(rewind = true): void {
+    this.stopElement(this.missAudio, rewind);
+  }
+
   stopAllEnemies(rewind = true): void {
     for (const audio of this.enemies) {
       this.stopElement(audio, rewind);
@@ -96,6 +114,7 @@ export class GameAudioController {
 
   pauseAll(): void {
     this.stopAllEnemies(false);
+    this.stopMiss(false);
     for (const audio of this.firePool) {
       this.stopElement(audio, false);
     }
@@ -106,6 +125,7 @@ export class GameAudioController {
 
   stopAll(): void {
     this.stopAllEnemies(true);
+    this.stopMiss(true);
     for (const audio of this.firePool) {
       this.stopElement(audio, true);
     }
