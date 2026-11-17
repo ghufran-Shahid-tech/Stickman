@@ -1,14 +1,19 @@
 import { GAME_ASSETS } from './assets';
 
-function createAudio(src: string): HTMLAudioElement {
+function createAudio(src: string, volume = 1): HTMLAudioElement {
   const audio = new Audio();
   audio.src = src;
   audio.preload = 'auto';
+  audio.volume = volume;
   return audio;
 }
 
-function createAudioPool(src: string, size: number): HTMLAudioElement[] {
-  return Array.from({ length: size }, () => createAudio(src));
+function createAudioPool(
+  src: string,
+  size: number,
+  volume = 1,
+): HTMLAudioElement[] {
+  return Array.from({ length: size }, () => createAudio(src, volume));
 }
 
 export class GameAudioController {
@@ -22,8 +27,8 @@ export class GameAudioController {
 
   constructor(initialMuted = false) {
     this.muted = initialMuted;
-    this.enemies = GAME_ASSETS.enemyAudio.map(createAudio);
-    this.firePool = createAudioPool(GAME_ASSETS.fireAudio, 4);
+    this.enemies = GAME_ASSETS.enemyAudio.map((src) => createAudio(src));
+    this.firePool = createAudioPool(GAME_ASSETS.fireAudio, 4, 0.35);
     this.hitPool = createAudioPool(GAME_ASSETS.hitAudio, 2);
     this.missAudio = createAudio(GAME_ASSETS.missAudio);
     this.applyMutedState();

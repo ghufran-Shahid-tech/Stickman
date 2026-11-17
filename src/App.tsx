@@ -7,6 +7,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { useStickmanGame } from './game/useStickmanGame';
+import { PWAInstallButton } from './pwa/PWAInstallButton';
 
 const PORTFOLIO_URL =
   'https://ghufran-shahid-tech.github.io/Personal-Portfolio-/?utm_source=ig&utm_medium=social&utm_content=link_in_bio&fbclid=PAZXh0bgNhZW0CMTEAcGRvZgJzcnRjBmFwcF9pZA81NjcwNjczNDMzNTI0MjcAAacV1A-4JC8AaHMmfgJiGBD_y8yuQaQ2qGA_vxHOqbClo-DXubopUfr-NtL2sg_aem_VntXPuKkB2AS8_PIkhaDQw';
@@ -64,6 +65,8 @@ export default function App() {
         </div>
 
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2.5">
+          <PWAInstallButton variant="hud" />
+
           <button
             type="button"
             onClick={toggleMute}
@@ -156,6 +159,8 @@ export default function App() {
               <RotateCcw className="h-5 w-5" strokeWidth={2.3} aria-hidden="true" />
               <span>Reset</span>
             </button>
+
+            <PWAInstallButton variant="menu" />
           </div>
         </section>
       )}
