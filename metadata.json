@@ -1,0 +1,8 @@
+{
+  "name": " Stickman Launcher | Creat by GT",
+  "description": "2D stickman arcade launcher game: aim, fire, and hit flying targets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
